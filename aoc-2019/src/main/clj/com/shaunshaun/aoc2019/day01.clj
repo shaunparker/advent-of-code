@@ -38,14 +38,37 @@
   (-> (/ mass 3.0)
       (Math/floor)
       (- 2)
-      (int)))
+      (long)))
+
+(defn mass->fuel-seq
+  "Fuel itself requires fuel just like a module - take its mass, divide by
+   three, round down, and subtract 2. However, that fuel also requires fuel,
+   and that fuel requires fuel, and so on. Any mass that would require negative
+   fuel should instead be treated as if it requires zero fuel; the remaining
+   mass, if any, is instead handled by wishing really hard, which has no mass
+   and is outside the scope of this calculation.
+
+   So, for each module mass, calculate its fuel and add it to the total. Then,
+   treat the fuel amount you just calculated as the input mass and repeat the
+   process, continuing until a fuel requirement is zero or negative."
+  [mass]
+  (->> (iterate mass->fuel mass)
+       ;; skip the first element, its the provided mass
+       (rest)
+       (take-while pos-int?)))
 
 (defn fuel-counter-upper
   "The Fuel Counter-Upper needs to know the total fuel requirement. To find it,
-  individually calculate the fuel needed for the mass of each module
-  (your puzzle input), then add together all the fuel values."
+   individually calculate the fuel needed for the mass of each module
+   (your puzzle input), then add together all the fuel values."
   [masses]
   (->> (map mass->fuel masses)
+       (reduce +)))
+
+(defn masses->fuel
+  "Calculates the fuel requirements for each mass separately and adds them all up."
+  [masses]
+  (->> (mapcat mass->fuel-seq masses)
        (reduce +)))
 
 (comment
@@ -61,6 +84,11 @@
                 101978 82314 86692 102372 92084 99883 62642 57330 110474 70679
                 101075 79706 79487 139548 122700 96657]
         _ (assert (s/valid? ::wd/masses masses))
-        day-01-answer (fuel-counter-upper masses)]
-    ;; What is the sum of the fuel requirements for all of the modules on your spacecraft?
-    (println "Day 01 Answer: " day-01-answer)))
+        part1-answer (fuel-counter-upper masses)
+        part2-answer (masses->fuel masses)]
+    ;; What is the sum of the fuel requirements for all of the modules on
+    ;; your spacecraft?
+    (println "Day 01 Part 1 Answer:" part1-answer)
+    ;; What is the sum of the fuel requirements for all of the modules on your
+    ;; spacecraft when also taking into account the mass of the added fuel?
+    (println "Day 01 Part 2 Answer:" part2-answer)))
